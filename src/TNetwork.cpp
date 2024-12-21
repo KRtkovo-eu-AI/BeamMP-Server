@@ -86,7 +86,7 @@ TNetwork::TNetwork(TServer& Server, TPPSMonitor& PPSMonitor, TResourceManager& R
 void TNetwork::UDPServerMain() {
     RegisterThread("UDPServer");
     // listen on all ipv6 addresses
-    ip::udp::endpoint UdpListenEndpoint(ip::address::from_string("::"), Application::Settings.getAsInt(Settings::Key::General_Port));
+    ip::udp::endpoint UdpListenEndpoint(ip::make_address("::"), Application::Settings.getAsInt(Settings::Key::General_Port));
     boost::system::error_code ec;
     mUDPSock.open(UdpListenEndpoint.protocol(), ec);
     if (ec) {
@@ -172,7 +172,7 @@ void TNetwork::TCPServerMain() {
 
     // listen on all ipv6 addresses
     auto port = uint16_t(Application::Settings.getAsInt(Settings::Key::General_Port));
-    ip::tcp::endpoint ListenEp(ip::address::from_string("::"), port);
+    ip::tcp::endpoint ListenEp(ip::make_address("::"), port);
     beammp_infof("Listening on 0.0.0.0:{0} and [::]:{0}", port);
     ip::tcp::socket Listener(mServer.IoCtx());
     boost::system::error_code ec;
