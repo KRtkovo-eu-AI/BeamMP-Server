@@ -13,6 +13,7 @@
     "nlohmann-json",
     "openssl",
     "rapidjson",
-    "sol2"
+    "sol2",
+    "curl"
   ]
 }
