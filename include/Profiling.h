@@ -6,6 +6,9 @@
 #include <limits>
 #include <unordered_map>
 
+#undef max
+#undef min
+
 namespace prof {
 
 using Duration = std::chrono::duration<double, std::milli>;
