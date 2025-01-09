@@ -215,7 +215,7 @@ void Application::CheckForUpdates() {
     // checks current version against latest version
     std::regex VersionRegex { R"(\d+\.\d+\.\d+\n*)" };
     for (const auto& url : GetBackendUrlsInOrder()) {
-        auto Response = Http::GET(url, 443, "/v/s");
+        auto Response = Http::GET(url + "/v/s");
         bool Matches = std::regex_match(Response, VersionRegex);
         if (Matches) {
             auto MyVersion = ServerVersion();
