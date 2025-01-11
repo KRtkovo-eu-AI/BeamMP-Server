@@ -66,7 +66,7 @@ void THeartbeatThread::operator()() {
         json::Document Doc;
         bool Ok = false;
         for (const auto& Url : Application::GetBackendUrlsInOrder()) {
-            T = Http::POST(Url, 443, Target, Body, "application/json", &ResponseCode, { { "api-v", "2" } });
+            T = Http::POST(Url + Target, Body, "application/json", &ResponseCode, { { "api-v", "2" } });
 
             if (!Application::Settings.getAsBool(Settings::Key::General_Private)) {
                 beammp_debug("Backend response was: `" + T + "`");
