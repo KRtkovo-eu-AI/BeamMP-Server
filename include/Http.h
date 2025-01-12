@@ -23,6 +23,7 @@
 #include <filesystem>
 #include <string>
 #include <unordered_map>
+#include <curl/curl.h>
 
 #if defined(BEAMMP_LINUX)
 #pragma GCC diagnostic push
@@ -38,8 +39,8 @@
 namespace fs = std::filesystem;
 
 namespace Http {
-std::string GET(const std::string& host, int port, const std::string& target, unsigned int* status = nullptr);
-std::string POST(const std::string& host, int port, const std::string& target, const std::string& body, const std::string& ContentType, unsigned int* status = nullptr, const httplib::Headers& headers = {});
+std::string GET(const std::string& url, unsigned int* status = nullptr);
+std::string POST(const std::string& url, const std::string& body, const std::string& ContentType, unsigned int* status = nullptr, const std::map<std::string, std::string>& headers = {});
 namespace Status {
     std::string ToString(int code);
 }

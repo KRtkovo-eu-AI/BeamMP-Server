@@ -346,7 +346,7 @@ std::shared_ptr<TClient> TNetwork::Authentication(TConnection&& RawConnection) {
         auto Target = "/pkToUser";
 
         unsigned int ResponseCode = 0;
-        AuthResStr = Http::POST(Application::GetBackendUrlForAuth(), 443, Target, AuthReq.dump(), "application/json", &ResponseCode);
+        AuthResStr = Http::POST(Application::GetBackendUrlForAuth() + Target, AuthReq.dump(), "application/json", &ResponseCode);
 
     } catch (const std::exception& e) {
         beammp_debugf("Invalid json sent by client, kicking: {}", e.what());

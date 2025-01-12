@@ -29,67 +29,86 @@
 #include <stdexcept>
 
 using json = nlohmann::json;
-struct Connection {
-    std::string host {};
-    int port {};
-    Connection() = default;
-    Connection(std::string host, int port)
-        : host(host)
-        , port(port) {};
-};
-constexpr uint8_t CONNECTION_AMOUNT = 10;
-static thread_local uint8_t write_index = 0;
-static thread_local std::array<Connection, CONNECTION_AMOUNT> connections;
-static thread_local std::array<std::shared_ptr<httplib::SSLClient>, CONNECTION_AMOUNT> clients;
 
-[[nodiscard]] static std::shared_ptr<httplib::SSLClient> getClient(Connection connectionInfo) {
-    for (uint8_t i = 0; i < CONNECTION_AMOUNT; i++) {
-        if (connectionInfo.host == connections[i].host
-            && connectionInfo.port == connections[i].port) {
-            beammp_tracef("Old client reconnected, with ip {} and port {}", connectionInfo.host, connectionInfo.port);
-            return clients[i];
-        }
-    }
-    uint8_t i = write_index;
-    write_index++;
-    write_index %= CONNECTION_AMOUNT;
-    clients[i] = std::make_shared<httplib::SSLClient>(connectionInfo.host, connectionInfo.port);
-    connections[i] = { connectionInfo.host, connectionInfo.port };
-    beammp_tracef("New client connected, with ip {} and port {}", connectionInfo.host, connectionInfo.port);
-    return clients[i];
+static size_t CurlWriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
+    std::string* Result = reinterpret_cast<std::string*>(userp);
+    std::string NewContents(reinterpret_cast<char*>(contents), size * nmemb);
+    *Result += NewContents;
+    return size * nmemb;
 }
 
-std::string Http::GET(const std::string& host, int port, const std::string& target, unsigned int* status) {
-    std::shared_ptr<httplib::SSLClient> client = getClient({ host, port });
-    client->enable_server_certificate_verification(false);
-    client->set_address_family(AF_INET);
-    auto res = client->Get(target.c_str());
-    if (res) {
-        if (status) {
-            *status = res->status;
+std::string Http::GET(const std::string& url, unsigned int* status) {
+    std::string Ret;
+    static thread_local CURL* curl = curl_easy_init();
+    if (curl) {
+        CURLcode res;
+        char errbuf[CURL_ERROR_SIZE];
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&Ret);
+        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10); // seconds
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
+        errbuf[0] = 0;
+        res = curl_easy_perform(curl);
+        if (res != CURLE_OK) {
+            beammp_error("GET to " + url + " failed: " + std::string(curl_easy_strerror(res)));
+            beammp_error("Curl error: " + std::string(errbuf));
+            return Http::ErrorString;
         }
-        return res->body;
+
+        if (status) {
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, status);
+        }
+
     } else {
+        beammp_error("Curl easy init failed");
         return Http::ErrorString;
     }
+    return Ret;
 }
 
-std::string Http::POST(const std::string& host, int port, const std::string& target, const std::string& body, const std::string& ContentType, unsigned int* status, const httplib::Headers& headers) {
-    std::shared_ptr<httplib::SSLClient> client = getClient({ host, port });
-    client->set_read_timeout(std::chrono::seconds(10));
-    beammp_assert(client->is_valid());
-    client->enable_server_certificate_verification(false);
-    client->set_address_family(AF_INET);
-    auto res = client->Post(target.c_str(), headers, body.c_str(), body.size(), ContentType.c_str());
-    if (res) {
-        if (status) {
-            *status = res->status;
+std::string Http::POST(const std::string& url, const std::string& body, const std::string& ContentType, unsigned int* status, const std::map<std::string, std::string>& headers) {
+    std::string Ret;
+    static thread_local CURL* curl = curl_easy_init();
+    if (curl) {
+        CURLcode res;
+        char errbuf[CURL_ERROR_SIZE];
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&Ret);
+        curl_easy_setopt(curl, CURLOPT_POST, 1);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, body.size());
+        struct curl_slist* list = nullptr;
+        list = curl_slist_append(list, ("Content-Type: " + ContentType).c_str());
+
+        for (auto [header, value] : headers) {
+            list = curl_slist_append(list, (header + value).c_str());
         }
-        return res->body;
+
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
+        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10); // seconds
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
+        errbuf[0] = 0;
+        res = curl_easy_perform(curl);
+        curl_slist_free_all(list);
+        if (res != CURLE_OK) {
+            beammp_error("POST to " + url + " failed: " + std::string(curl_easy_strerror(res)));
+            beammp_error("Curl error: " + std::string(errbuf));
+            return Http::ErrorString;
+        }
+
+        if (status) {
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, status);
+        }
+
     } else {
-        beammp_debug("POST failed: " + httplib::to_string(res.error()));
+        beammp_error("Curl easy init failed");
         return Http::ErrorString;
     }
+    return Ret;
 }
 
 // RFC 2616, RFC 7231

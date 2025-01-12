@@ -82,11 +82,11 @@ public:
 
     static std::vector<std::string> GetBackendUrlsInOrder() {
         return {
-            "backend.beammp.com",
+            "https://backend.beammp.com",
         };
     }
 
-    static std::string GetBackendUrlForAuth() { return "auth.beammp.com"; }
+    static std::string GetBackendUrlForAuth() { return "https://auth.beammp.com"; }
     static std::string GetBackendUrlForSocketIO() { return "https://backend.beammp.com"; }
     static void CheckForUpdates();
     static std::array<uint8_t, 3> VersionStrToInts(const std::string& str);
