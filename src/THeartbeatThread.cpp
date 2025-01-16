@@ -24,11 +24,7 @@
 #include "Http.h"
 // #include "SocketIO.h"
 #include <nlohmann/json.hpp>
-#include <rapidjson/document.h>
-#include <rapidjson/rapidjson.h>
 #include <sstream>
-
-namespace json = rapidjson;
 
 void THeartbeatThread::operator()() {
     RegisterThread("Heartbeat");
@@ -63,7 +59,7 @@ void THeartbeatThread::operator()() {
         auto Target = "/heartbeat";
         unsigned int ResponseCode = 0;
 
-        json::Document Doc;
+        nlohmann::json Doc;
         bool Ok = false;
         for (const auto& Url : Application::GetBackendUrlsInOrder()) {
             T = Http::POST(Url + Target, Body, "application/json", &ResponseCode, { { "api-v", "2" } });
@@ -72,8 +68,8 @@ void THeartbeatThread::operator()() {
                 beammp_debug("Backend response was: `" + T + "`");
             }
 
-            Doc.Parse(T.data(), T.size());
-            if (Doc.HasParseError() || !Doc.IsObject()) {
+            Doc = nlohmann::json::parse(T, nullptr, false);
+            if (Doc.is_discarded() || !Doc.is_object()) {
                 if (!Application::Settings.getAsBool(Settings::Key::General_Private)) {
                     beammp_trace("Backend response failed to parse as valid json");
                 }
@@ -94,18 +90,18 @@ void THeartbeatThread::operator()() {
         const auto MessageKey = "msg";
 
         if (Ok) {
-            if (Doc.HasMember(StatusKey) && Doc[StatusKey].IsString()) {
-                Status = Doc[StatusKey].GetString();
+            if (Doc.contains(StatusKey) && Doc[StatusKey].is_string()) {
+                Status = Doc[StatusKey];
             } else {
                 Ok = false;
             }
-            if (Doc.HasMember(CodeKey) && Doc[CodeKey].IsString()) {
-                Code = Doc[CodeKey].GetString();
+            if (Doc.contains(CodeKey) && Doc[CodeKey].is_string()) {
+                Code = Doc[CodeKey];
             } else {
                 Ok = false;
             }
-            if (Doc.HasMember(MessageKey) && Doc[MessageKey].IsString()) {
-                Message = Doc[MessageKey].GetString();
+            if (Doc.contains(MessageKey) && Doc[MessageKey].is_string()) {
+                Message = Doc[MessageKey];
             } else {
                 Ok = false;
             }
