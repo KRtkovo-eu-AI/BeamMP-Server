@@ -62,7 +62,7 @@ static constexpr std::string_view StrPassword = "Password";
 
 // Misc
 static constexpr std::string_view StrHideUpdateMessages = "ImScaredOfUpdates";
-static constexpr std::string_view EnvStrHideUpdateMessages = "BEAMMP_HIDE_UPDATE_MESSAGES";
+static constexpr std::string_view EnvStrHideUpdateMessages = "BEAMMP_IM_SCARED_OF_UPDATES";
 static constexpr std::string_view StrUpdateReminderTime = "UpdateReminderTime";
 static constexpr std::string_view EnvStrUpdateReminderTime = "BEAMMP_UPDATE_REMINDER_TIME";
 
