@@ -84,7 +84,7 @@ std::string Http::POST(const std::string& url, const std::string& body, const st
         list = curl_slist_append(list, ("Content-Type: " + ContentType).c_str());
 
         for (auto [header, value] : headers) {
-            list = curl_slist_append(list, (header + value).c_str());
+            list = curl_slist_append(list, (header + ": " + value).c_str());
         }
 
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);

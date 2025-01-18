@@ -121,6 +121,8 @@ void TResourceManager::RefreshFiles() {
             }
             EVP_MD_CTX_free(mdctx);
 
+            stream.close();
+
             std::string result;
             for (size_t i = 0; i < sha256_len; i++) {
                 result += fmt::format("{:02x}", sha256_value[i]);
