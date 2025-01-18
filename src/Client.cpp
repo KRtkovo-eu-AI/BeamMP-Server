@@ -57,7 +57,7 @@ int TClient::GetOpenCarID() const {
     return OpenID;
 }
 
-void TClient::AddNewCar(int Ident, const std::string& Data) {
+void TClient::AddNewCar(int Ident, const nlohmann::json& Data) {
     std::unique_lock lock(mVehicleDataMutex);
     mVehicleData.emplace_back(Ident, Data);
 }
@@ -98,7 +98,7 @@ void TClient::SetCarPosition(int Ident, const std::string& Data) {
     mVehiclePosition[size_t(Ident)] = Data;
 }
 
-std::string TClient::GetCarData(int Ident) {
+nlohmann::json TClient::GetCarData(int Ident) {
     { // lock
         std::unique_lock lock(mVehicleDataMutex);
         for (auto& v : mVehicleData) {
@@ -108,10 +108,10 @@ std::string TClient::GetCarData(int Ident) {
         }
     } // unlock
     DeleteCar(Ident);
-    return "";
+    return nlohmann::detail::value_t::null;
 }
 
-void TClient::SetCarData(int Ident, const std::string& Data) {
+void TClient::SetCarData(int Ident, const nlohmann::json& Data) {
     { // lock
         std::unique_lock lock(mVehicleDataMutex);
         for (auto& v : mVehicleData) {

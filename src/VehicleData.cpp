@@ -21,7 +21,7 @@
 #include "Common.h"
 #include <utility>
 
-TVehicleData::TVehicleData(int ID, std::string Data)
+TVehicleData::TVehicleData(int ID, nlohmann::json Data)
     : mID(ID)
     , mData(std::move(Data)) {
     beammp_trace("vehicle " + std::to_string(mID) + " constructed");
@@ -29,4 +29,8 @@ TVehicleData::TVehicleData(int ID, std::string Data)
 
 TVehicleData::~TVehicleData() {
     beammp_trace("vehicle " + std::to_string(mID) + " destroyed");
+}
+
+std::string TVehicleData::DataAsPacket(const std::string& Role, const std::string& Name, const int ID) const {
+    return "Os:" + Role + ":" + Name + ":" + std::to_string(ID) + "-" + std::to_string(this->mID) + ":" + this->mData.dump();
 }
