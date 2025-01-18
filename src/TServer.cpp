@@ -473,6 +473,17 @@ void TServer::ParseVehicle(TClient& c, const std::string& Pckt, TNetwork& Networ
             Data = Data.substr(Data.find('['));
             LuaAPI::MP::Engine->ReportErrors(LuaAPI::MP::Engine->TriggerEvent("onVehiclePaintChanged", "", c.GetID(), VID, Data));
             Network.SendToAll(&c, StringToVector(Packet), false, true);
+
+            auto CarData = c.GetCarData(VID);
+            if (CarData == nlohmann::detail::value_t::null)
+                return;
+
+            if (CarData.contains("vcf") && CarData.at("vcf").is_object())
+                if (CarData.at("vcf").contains("paints") && CarData.at("vcf").at("paints").is_array()) {
+                    CarData.at("vcf")["paints"] = nlohmann::json::parse(Data);
+                    c.SetCarData(VID, CarData);
+                }
+
         }
         return;
     }
