@@ -258,8 +258,16 @@ void TNetwork::Identify(TConnection&& RawConnection) {
             write(RawConnection.Socket, buffer("P"), ec);
             return;
         } else if (Code == 'I') {
+            const std::string Data = Application::Settings.getAsBool(Settings::Key::General_InformationPacket) ? THeartbeatThread::lastCall : "";
+
+            const auto Size = static_cast<int32_t>(Data.size());
+            std::vector<uint8_t> ToSend;
+            ToSend.resize(Data.size() + sizeof(Size));
+            std::memcpy(ToSend.data(), &Size, sizeof(Size));
+            std::memcpy(ToSend.data() + sizeof(Size), Data.data(), Data.size());
+
             boost::system::error_code ec;
-            write(RawConnection.Socket, buffer(Application::Settings.getAsBool(Settings::Key::General_InformationPacket) ? THeartbeatThread::lastCall : ""), ec);
+            write(RawConnection.Socket, buffer(ToSend), ec);
         } else {
             beammp_errorf("Invalid code got in Identify: '{}'", Code);
         }
