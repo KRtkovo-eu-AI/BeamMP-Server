@@ -44,6 +44,7 @@ std::string Http::GET(const std::string& url, unsigned int* status) {
         CURLcode res;
         char errbuf[CURL_ERROR_SIZE];
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&Ret);
         curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10); // seconds
@@ -75,6 +76,7 @@ std::string Http::POST(const std::string& url, const std::string& body, const st
         CURLcode res;
         char errbuf[CURL_ERROR_SIZE];
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&Ret);
         curl_easy_setopt(curl, CURLOPT_POST, 1);
