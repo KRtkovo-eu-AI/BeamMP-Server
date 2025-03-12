@@ -34,6 +34,8 @@ static constexpr std::string_view StrDebug = "Debug";
 static constexpr std::string_view EnvStrDebug = "BEAMMP_DEBUG";
 static constexpr std::string_view StrPrivate = "Private";
 static constexpr std::string_view EnvStrPrivate = "BEAMMP_PRIVATE";
+static constexpr std::string_view StrIP = "IP";
+static constexpr std::string_view EnvStrIP = "BEAMMP_IP";
 static constexpr std::string_view StrPort = "Port";
 static constexpr std::string_view EnvStrPort = "BEAMMP_PORT";
 static constexpr std::string_view StrMaxCars = "MaxCars";
@@ -138,6 +140,8 @@ void TConfig::FlushToFile() {
     data["General"][StrInformationPacket.data()] = Application::Settings.getAsBool(Settings::Key::General_InformationPacket);
     data["General"][StrAllowGuests.data()] = Application::Settings.getAsBool(Settings::Key::General_AllowGuests);
     SetComment(data["General"][StrAllowGuests.data()].comments(), " Whether to allow guests");
+    data["General"][StrIP.data()] = Application::Settings.getAsString(Settings::Key::General_IP);
+    SetComment(data["General"][StrIP.data()].comments(), " The IP address to bind the server to, this is NOT related to your public IP.");
     data["General"][StrPort.data()] = Application::Settings.getAsInt(Settings::Key::General_Port);
     data["General"][StrName.data()] = Application::Settings.getAsString(Settings::Key::General_Name);
     SetComment(data["General"][StrTags.data()].comments(), " Add custom identifying tags to your server to make it easier to find. Format should be TagA,TagB,TagC. Note the comma seperation.");
@@ -254,6 +258,7 @@ void TConfig::ParseFromFile(std::string_view name) {
         } else {
             TryReadValue(data, "General", StrPort, EnvStrPort, Settings::Key::General_Port);
         }
+        TryReadValue(data, "General", StrIP, EnvStrIP, Settings::Key::General_IP);
         TryReadValue(data, "General", StrMaxCars, EnvStrMaxCars, Settings::Key::General_MaxCars);
         TryReadValue(data, "General", StrMaxPlayers, EnvStrMaxPlayers, Settings::Key::General_MaxPlayers);
         TryReadValue(data, "General", StrMap, EnvStrMap, Settings::Key::General_Map);
