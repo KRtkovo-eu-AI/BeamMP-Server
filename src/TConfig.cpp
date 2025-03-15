@@ -141,7 +141,7 @@ void TConfig::FlushToFile() {
     data["General"][StrAllowGuests.data()] = Application::Settings.getAsBool(Settings::Key::General_AllowGuests);
     SetComment(data["General"][StrAllowGuests.data()].comments(), " Whether to allow guests");
     data["General"][StrIP.data()] = Application::Settings.getAsString(Settings::Key::General_IP);
-    SetComment(data["General"][StrIP.data()].comments(), " The IP address to bind the server to, this is NOT related to your public IP.");
+    SetComment(data["General"][StrIP.data()].comments(), " The IP address to bind the server to, this is NOT related to your public IP. Can be used if your machine has multiple network interfaces");
     data["General"][StrPort.data()] = Application::Settings.getAsInt(Settings::Key::General_Port);
     data["General"][StrName.data()] = Application::Settings.getAsString(Settings::Key::General_Name);
     SetComment(data["General"][StrTags.data()].comments(), " Add custom identifying tags to your server to make it easier to find. Format should be TagA,TagB,TagC. Note the comma seperation.");
