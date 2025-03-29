@@ -85,9 +85,17 @@ TNetwork::TNetwork(TServer& Server, TPPSMonitor& PPSMonitor, TResourceManager& R
 
 void TNetwork::UDPServerMain() {
     RegisterThread("UDPServer");
-    // listen on all ipv6 addresses
-    ip::udp::endpoint UdpListenEndpoint(ip::make_address("::"), Application::Settings.getAsInt(Settings::Key::General_Port));
+
     boost::system::error_code ec;
+    auto address = ip::make_address(Application::Settings.getAsString(Settings::Key::General_IP), ec);
+
+    if (ec) {
+        beammp_errorf("Failed to parse IP: {}", ec.message());
+        Application::GracefullyShutdown();
+    }
+
+    ip::udp::endpoint UdpListenEndpoint(address, Application::Settings.getAsInt(Settings::Key::General_Port));
+
     mUDPSock.open(UdpListenEndpoint.protocol(), ec);
     if (ec) {
         beammp_error("open() failed: " + ec.message());
@@ -107,7 +115,7 @@ void TNetwork::UDPServerMain() {
         Application::GracefullyShutdown();
     }
     Application::SetSubsystemStatus("UDPNetwork", Application::Status::Good);
-    beammp_info(("Vehicle data network online on port ") + std::to_string(Application::Settings.getAsInt(Settings::Key::General_Port)) + (" with a Max of ")
+    beammp_info(("Vehicle data network online on port ") + std::to_string(UdpListenEndpoint.port()) + (" with a Max of ")
         + std::to_string(Application::Settings.getAsInt(Settings::Key::General_MaxPlayers)) + (" Clients"));
     while (!Application::IsShuttingDown()) {
         try {
@@ -170,12 +178,17 @@ void TNetwork::UDPServerMain() {
 void TNetwork::TCPServerMain() {
     RegisterThread("TCPServer");
 
-    // listen on all ipv6 addresses
-    auto port = uint16_t(Application::Settings.getAsInt(Settings::Key::General_Port));
-    ip::tcp::endpoint ListenEp(ip::make_address("::"), port);
-    beammp_infof("Listening on 0.0.0.0:{0} and [::]:{0}", port);
-    ip::tcp::socket Listener(mServer.IoCtx());
     boost::system::error_code ec;
+    auto address = ip::make_address(Application::Settings.getAsString(Settings::Key::General_IP), ec);
+    if (ec) {
+        beammp_errorf("Failed to parse IP: {}", ec.message());
+        return;
+    }
+
+    ip::tcp::endpoint ListenEp(address,
+        uint16_t(Application::Settings.getAsInt(Settings::Key::General_Port)));
+
+    ip::tcp::socket Listener(mServer.IoCtx());
     Listener.open(ListenEp.protocol(), ec);
     if (ec) {
         beammp_errorf("Failed to open socket: {}", ec.message());
@@ -209,6 +222,7 @@ void TNetwork::TCPServerMain() {
         Application::GracefullyShutdown();
     }
     Application::SetSubsystemStatus("TCPNetwork", Application::Status::Good);
+    beammp_infof("Listening on {0} port {1}", ListenEp.address().to_string(), static_cast<uint16_t>(ListenEp.port()));
     beammp_info("Vehicle event network online");
     do {
         try {
