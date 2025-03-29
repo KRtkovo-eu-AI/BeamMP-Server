@@ -222,7 +222,7 @@ void TNetwork::TCPServerMain() {
         Application::GracefullyShutdown();
     }
     Application::SetSubsystemStatus("TCPNetwork", Application::Status::Good);
-    beammp_infof("Listening on {0} port {1}", ListenEp.address().to_string(), (int)ListenEp.port());
+    beammp_infof("Listening on {0} port {1}", ListenEp.address().to_string(), static_cast<uint16_t>(ListenEp.port()));
     beammp_info("Vehicle event network online");
     do {
         try {
