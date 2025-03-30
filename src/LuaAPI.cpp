@@ -241,6 +241,46 @@ std::pair<bool, std::string> LuaAPI::MP::SendNotification(int ID, const std::str
     return Result;
 }
 
+std::pair<bool, std::string> LuaAPI::MP::ConfirmationDialog(int ID, const std::string& Title, const std::string& Body, const sol::table& buttons, const std::string& InteractionID, const bool& warning) {
+    std::pair<bool, std::string> Result;
+
+    const nlohmann::json PacketBody = {
+        { "title", Title },
+        { "body", Body },
+        { "buttons", nlohmann::json::parse(JsonEncode(buttons), nullptr, false) },
+        { "interactionID", InteractionID },
+        { "class", warning ? "experimental" : "" }
+    };
+
+    std::string Packet = "D" + PacketBody.dump();
+    if (ID == -1) {
+        Engine->Network().SendToAll(nullptr, StringToVector(Packet), true, true);
+        Result.first = true;
+    } else {
+        auto MaybeClient = GetClient(Engine->Server(), ID);
+        if (MaybeClient) {
+            auto c = MaybeClient.value().lock();
+            if (!c->IsSynced()) {
+                Result.first = false;
+                Result.second = "Player is not synced yet";
+                return Result;
+            }
+            if (!Engine->Network().Respond(*c, StringToVector(Packet), true)) {
+                beammp_errorf("Failed to send confirmation dialog to player (id {}) - did the player disconnect?", ID);
+                Result.first = false;
+                Result.second = "Failed to send packet";
+            }
+            Result.first = true;
+        } else {
+            beammp_lua_error("ConfirmationDialog invalid argument [1] invalid ID");
+            Result.first = false;
+            Result.second = "Invalid Player ID";
+        }
+        return Result;
+    }
+    return Result;
+}
+
 std::pair<bool, std::string> LuaAPI::MP::RemoveVehicle(int PID, int VID) {
     std::pair<bool, std::string> Result;
     auto MaybeClient = GetClient(Engine->Server(), PID);
