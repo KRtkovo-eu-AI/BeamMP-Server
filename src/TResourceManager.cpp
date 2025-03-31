@@ -94,10 +94,12 @@ void TResourceManager::RefreshFiles() {
         }
 
         if (modsDB.contains(entry.path().filename().string())) {
-            auto dbEntry = modsDB[entry.path().filename().string()];
+            auto& dbEntry = modsDB[entry.path().filename().string()];
             if (entry.last_write_time().time_since_epoch().count() > dbEntry["lastwrite"] || std::filesystem::file_size(File) != dbEntry["filesize"].get<size_t>()) {
                 beammp_infof("File '{}' has been modified, rehashing", File);
             } else {
+                dbEntry["exists"] = true;
+
                 mMods.push_back(nlohmann::json {
                 { "file_name", std::filesystem::path(File).filename() },
                 { "file_size", std::filesystem::file_size(File) },
@@ -178,11 +180,21 @@ void TResourceManager::RefreshFiles() {
                 { "lastwrite", entry.last_write_time().time_since_epoch().count() },
                 { "hash", result },
                 { "filesize", std::filesystem::file_size(File) },
-                { "protected", false }
+                { "protected", false },
+                { "exists", true }
             };
 
         } catch (const std::exception& e) {
             beammp_errorf("Sha256 hashing of '{}' failed: {}", File, e.what());
+        }
+    }
+
+    for (auto it = modsDB.begin(); it != modsDB.end(); ) {
+        if (!it.value().contains("exists")) {
+            it = modsDB.erase(it);
+        } else {
+            it.value().erase("exists");
+            ++it;
         }
     }
 
