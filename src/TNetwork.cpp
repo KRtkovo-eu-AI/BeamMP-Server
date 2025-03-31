@@ -810,6 +810,11 @@ void TNetwork::SendFile(TClient& c, const std::string& UnsafeName) {
     auto FileName = fs::path(UnsafeName).filename().string();
     FileName = Application::Settings.getAsString(Settings::Key::General_ResourceFolder) + "/Client/" + FileName;
 
+    for (auto mod : mResourceManager.GetMods()) {
+        if (mod["filename"] == FileName && mod["protected"] == true)
+            return;
+    }
+
     if (!std::filesystem::exists(FileName)) {
         if (!TCPSend(c, StringToVector("CO"))) {
             // TODO: handle

@@ -66,12 +66,50 @@ void TResourceManager::RefreshFiles() {
     std::unique_lock Lock(mModsMutex);
 
     std::string Path = Application::Settings.getAsString(Settings::Key::General_ResourceFolder) + "/Client";
+
+    nlohmann::json modsDB;
+
+    if (std::filesystem::exists(Path + "/mods.json")) {
+        try {
+            std::ifstream stream(Path + "/mods.json");
+
+            stream >> modsDB;
+
+            stream.close();
+        } catch (const std::exception& e) {
+            beammp_errorf("Failed to load mods.json: {}", e.what());
+        }
+    }
+
     for (const auto& entry : fs::directory_iterator(Path)) {
         std::string File(entry.path().string());
+
+        if (entry.path().filename().string() == "mods.json") {
+            continue;
+        }
 
         if (entry.path().extension() != ".zip" || std::filesystem::is_directory(entry.path())) {
             beammp_warnf("'{}' is not a ZIP file and will be ignored", File);
             continue;
+        }
+
+        if (modsDB.contains(entry.path().filename().string())) {
+            auto dbEntry = modsDB[entry.path().filename().string()];
+            if (entry.last_write_time().time_since_epoch().count() > dbEntry["lastwrite"] || std::filesystem::file_size(File) != dbEntry["filesize"].get<size_t>()) {
+                beammp_infof("File '{}' has been modified, rehashing", File);
+            } else {
+                mMods.push_back(nlohmann::json {
+                { "file_name", std::filesystem::path(File).filename() },
+                { "file_size", std::filesystem::file_size(File) },
+                { "hash_algorithm", "sha256" },
+                { "hash", dbEntry["hash"] },
+                { "protected", dbEntry["protected"] }
+                });
+
+                beammp_debugf("Mod '{}' loaded from cache", File);
+
+                continue;
+            }
         }
 
         try {
@@ -133,9 +171,28 @@ void TResourceManager::RefreshFiles() {
                 { "file_size", std::filesystem::file_size(File) },
                 { "hash_algorithm", "sha256" },
                 { "hash", result },
+                { "protected", false }
             });
+
+            modsDB[std::filesystem::path(File).filename().string()] = {
+                { "lastwrite", entry.last_write_time().time_since_epoch().count() },
+                { "hash", result },
+                { "filesize", std::filesystem::file_size(File) },
+                { "protected", false }
+            };
+
         } catch (const std::exception& e) {
             beammp_errorf("Sha256 hashing of '{}' failed: {}", File, e.what());
         }
+    }
+
+    try {
+        std::ofstream stream(Path + "/mods.json");
+
+        stream << modsDB.dump(4);
+
+        stream.close();
+    } catch (std::exception& e) {
+        beammp_error("Failed to update mod DB: " + std::string(e.what()));
     }
 }

@@ -30,6 +30,7 @@ public:
     [[nodiscard]] std::string TrimmedList() const { return mTrimmedList; }
     [[nodiscard]] std::string FileSizes() const { return mFileSizes; }
     [[nodiscard]] int ModsLoaded() const { return mModsLoaded; }
+    [[nodiscard]] nlohmann::json GetMods() const { return mMods; }
 
     [[nodiscard]] std::string NewFileList() const;
 
