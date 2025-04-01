@@ -32,9 +32,8 @@ public:
     [[nodiscard]] int ModsLoaded() const { return mModsLoaded; }
     [[nodiscard]] nlohmann::json GetMods() const { return mMods; }
 
-    [[nodiscard]] std::string NewFileList() const;
-
     void RefreshFiles();
+    void SetProtected(const std::string& ModName, bool Protected);
 
 private:
     size_t mMaxModSize = 0;

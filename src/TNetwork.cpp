@@ -786,7 +786,7 @@ void TNetwork::Parse(TClient& c, const std::vector<uint8_t>& Packet) {
     case 'S':
         if (SubCode == 'R') {
             beammp_debug("Sending Mod Info");
-            std::string ToSend = mResourceManager.NewFileList();
+            std::string ToSend = mResourceManager.GetMods().dump();
             beammp_debugf("Mod Info: {}", ToSend);
             if (!TCPSend(c, StringToVector(ToSend))) {
                 ClientKick(c, "TCP Send 'SY' failed");

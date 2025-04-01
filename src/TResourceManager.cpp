@@ -58,9 +58,6 @@ TResourceManager::TResourceManager() {
     Application::SetSubsystemStatus("ResourceManager", Application::Status::Good);
 }
 
-std::string TResourceManager::NewFileList() const {
-    return mMods.dump();
-}
 void TResourceManager::RefreshFiles() {
     mMods.clear();
     std::unique_lock Lock(mModsMutex);
