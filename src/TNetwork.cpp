@@ -808,12 +808,16 @@ void TNetwork::SendFile(TClient& c, const std::string& UnsafeName) {
         return;
     }
     auto FileName = fs::path(UnsafeName).filename().string();
-    FileName = Application::Settings.getAsString(Settings::Key::General_ResourceFolder) + "/Client/" + FileName;
 
     for (auto mod : mResourceManager.GetMods()) {
-        if (mod["filename"] == FileName && mod["protected"] == true)
+        if (mod["file_name"].get<std::string>() == FileName && mod["protected"] == true) {
+            beammp_warn("Client tried to access protected file " + UnsafeName);
+            c.Disconnect("Mod is protected thus cannot be downloaded");
             return;
+        }
     }
+
+    FileName = Application::Settings.getAsString(Settings::Key::General_ResourceFolder) + "/Client/" + FileName;
 
     if (!std::filesystem::exists(FileName)) {
         if (!TCPSend(c, StringToVector("CO"))) {
