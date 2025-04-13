@@ -57,21 +57,26 @@ void TPluginMonitor::operator()() {
                     mFileTimes[Pair.first] = CurrentTime;
                     // grandparent of the path should be Resources/Server
                     if (fs::equivalent(fs::path(Pair.first).parent_path().parent_path(), mPath)) {
-                        beammp_infof("File \"{}\" changed, reloading", Pair.first);
-                        // is in root folder, so reload
-                        std::ifstream FileStream(Pair.first, std::ios::in | std::ios::binary);
-                        auto Size = std::filesystem::file_size(Pair.first);
-                        auto Contents = std::make_shared<std::string>();
-                        Contents->resize(Size);
-                        FileStream.read(Contents->data(), Contents->size());
-                        TLuaChunk Chunk(Contents, Pair.first, fs::path(Pair.first).parent_path().string());
-                        auto StateID = mEngine->GetStateIDForPlugin(fs::path(Pair.first).parent_path());
-                        auto Res = mEngine->EnqueueScript(StateID, Chunk);
-                        Res->WaitUntilReady();
-                        if (Res->Error) {
-                            beammp_lua_errorf("Error while hot-reloading \"{}\": {}", Pair.first, Res->ErrorMessage);
+                        if (fs::path(Pair.first).extension() == ".lua") {
+                            beammp_infof("File \"{}\" changed, reloading", Pair.first);
+                            // is in root folder, so reload
+                            std::ifstream FileStream(Pair.first, std::ios::in | std::ios::binary);
+                            auto Size = std::filesystem::file_size(Pair.first);
+                            auto Contents = std::make_shared<std::string>();
+                            Contents->resize(Size);
+                            FileStream.read(Contents->data(), Contents->size());
+                            TLuaChunk Chunk(Contents, Pair.first, fs::path(Pair.first).parent_path().string());
+                            auto StateID = mEngine->GetStateIDForPlugin(fs::path(Pair.first).parent_path());
+                            auto Res = mEngine->EnqueueScript(StateID, Chunk);
+                            Res->WaitUntilReady();
+                            if (Res->Error) {
+                                beammp_lua_errorf("Error while hot-reloading \"{}\": {}", Pair.first, Res->ErrorMessage);
+                            } else {
+                                mEngine->ReportErrors(mEngine->TriggerLocalEvent(StateID, "onInit"));
+                                mEngine->ReportErrors(mEngine->TriggerEvent("onFileChanged", "", Pair.first));
+                            }
                         } else {
-                            mEngine->ReportErrors(mEngine->TriggerLocalEvent(StateID, "onInit"));
+                            beammp_debugf("File \"{}\" changed, not reloading because it's not a lua file. Triggering 'onFileChanged' event instead", Pair.first);
                             mEngine->ReportErrors(mEngine->TriggerEvent("onFileChanged", "", Pair.first));
                         }
                     } else {
