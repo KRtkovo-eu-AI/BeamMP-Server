@@ -384,6 +384,13 @@ void SplitString(const std::string& str, const char delim, std::vector<std::stri
         out.push_back(str.substr(start, end - start));
     }
 }
+
+std::string LowerString(std::string str) {
+    std::ranges::transform(str, str.begin(), ::tolower);
+    return str;
+}
+
+
 static constexpr size_t STARTING_MAX_DECOMPRESSION_BUFFER_SIZE = 15 * 1024 * 1024;
 static constexpr size_t MAX_DECOMPRESSION_BUFFER_SIZE = 30 * 1024 * 1024;
 
