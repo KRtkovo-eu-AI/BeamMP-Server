@@ -57,7 +57,7 @@ void TPluginMonitor::operator()() {
                     mFileTimes[Pair.first] = CurrentTime;
                     // grandparent of the path should be Resources/Server
                     if (fs::equivalent(fs::path(Pair.first).parent_path().parent_path(), mPath)) {
-                        if (fs::path(Pair.first).extension() == ".lua") {
+                        if (LowerString(fs::path(Pair.first).extension().string()) == ".lua") {
                             beammp_infof("File \"{}\" changed, reloading", Pair.first);
                             // is in root folder, so reload
                             std::ifstream FileStream(Pair.first, std::ios::in | std::ios::binary);

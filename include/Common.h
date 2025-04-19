@@ -131,6 +131,7 @@ private:
 };
 
 void SplitString(std::string const& str, const char delim, std::vector<std::string>& out);
+std::string LowerString(std::string str);
 
 std::string ThreadName(bool DebugModeOverride = false);
 void RegisterThread(const std::string& str);
