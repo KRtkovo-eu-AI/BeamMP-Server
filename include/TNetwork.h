@@ -45,6 +45,8 @@ public:
     void SendToAll(TClient* c, const std::vector<uint8_t>& Data, bool Self, bool Rel);
     void UpdatePlayer(TClient& Client);
 
+    TResourceManager& ResourceManager() const { return mResourceManager; }
+
 private:
     void UDPServerMain();
     void TCPServerMain();

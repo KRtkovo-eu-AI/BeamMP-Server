@@ -98,12 +98,11 @@ void TResourceManager::RefreshFiles() {
                 dbEntry["exists"] = true;
 
                 mMods.push_back(nlohmann::json {
-                { "file_name", std::filesystem::path(File).filename() },
-                { "file_size", std::filesystem::file_size(File) },
-                { "hash_algorithm", "sha256" },
-                { "hash", dbEntry["hash"] },
-                { "protected", dbEntry["protected"] }
-                });
+                    { "file_name", std::filesystem::path(File).filename() },
+                    { "file_size", std::filesystem::file_size(File) },
+                    { "hash_algorithm", "sha256" },
+                    { "hash", dbEntry["hash"] },
+                    { "protected", dbEntry["protected"] } });
 
                 beammp_debugf("Mod '{}' loaded from cache", File);
 
@@ -170,8 +169,7 @@ void TResourceManager::RefreshFiles() {
                 { "file_size", std::filesystem::file_size(File) },
                 { "hash_algorithm", "sha256" },
                 { "hash", result },
-                { "protected", false }
-            });
+                { "protected", false } });
 
             modsDB[std::filesystem::path(File).filename().string()] = {
                 { "lastwrite", entry.last_write_time().time_since_epoch().count() },
@@ -186,7 +184,7 @@ void TResourceManager::RefreshFiles() {
         }
     }
 
-    for (auto it = modsDB.begin(); it != modsDB.end(); ) {
+    for (auto it = modsDB.begin(); it != modsDB.end();) {
         if (!it.value().contains("exists")) {
             it = modsDB.erase(it);
         } else {
@@ -203,5 +201,41 @@ void TResourceManager::RefreshFiles() {
         stream.close();
     } catch (std::exception& e) {
         beammp_error("Failed to update mod DB: " + std::string(e.what()));
+    }
+}
+
+void TResourceManager::SetProtected(const std::string& ModName, bool Protected) {
+    std::unique_lock Lock(mModsMutex);
+
+    for (auto& mod : mMods) {
+        if (mod["file_name"].get<std::string>() == ModName) {
+            mod["protected"] = Protected;
+            break;
+        }
+    }
+
+    auto modsDBPath = Application::Settings.getAsString(Settings::Key::General_ResourceFolder) + "/Client/mods.json";
+
+    if (std::filesystem::exists(modsDBPath)) {
+        try {
+            nlohmann::json modsDB;
+
+            std::fstream stream(modsDBPath);
+
+            stream >> modsDB;
+
+            if (modsDB.contains(ModName)) {
+                modsDB[ModName]["protected"] = Protected;
+            }
+
+            stream.clear();
+            stream.seekp(0, std::ios::beg);
+
+            stream << modsDB.dump(4);
+
+            stream.close();
+        } catch (const std::exception& e) {
+            beammp_errorf("Failed to update mods.json: {}", e.what());
+        }
     }
 }
