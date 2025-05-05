@@ -148,6 +148,11 @@ static inline std::pair<bool, std::string> InternalTriggerClientEvent(int Player
             return { false, "Invalid Player ID" };
         }
         auto c = MaybeClient.value().lock();
+
+        if (!c->IsSyncing() && !c->IsSynced()) {
+            return { false, "Player hasn't joined yet" };
+        }
+
         if (!LuaAPI::MP::Engine->Network().Respond(*c, StringToVector(Packet), true)) {
             beammp_lua_errorf("Respond failed, dropping client {}", PlayerID);
             LuaAPI::MP::Engine->Network().ClientKick(*c, "Disconnected after failing to receive packets");
