@@ -786,7 +786,7 @@ void TNetwork::Parse(TClient& c, const std::vector<uint8_t>& Packet) {
     case 'S':
         if (SubCode == 'R') {
             beammp_debug("Sending Mod Info");
-            std::string ToSend = mResourceManager.NewFileList();
+            std::string ToSend = mResourceManager.GetMods().dump();
             beammp_debugf("Mod Info: {}", ToSend);
             if (!TCPSend(c, StringToVector(ToSend))) {
                 ClientKick(c, "TCP Send 'SY' failed");
@@ -808,6 +808,15 @@ void TNetwork::SendFile(TClient& c, const std::string& UnsafeName) {
         return;
     }
     auto FileName = fs::path(UnsafeName).filename().string();
+
+    for (auto mod : mResourceManager.GetMods()) {
+        if (mod["file_name"].get<std::string>() == FileName && mod["protected"] == true) {
+            beammp_warn("Client tried to access protected file " + UnsafeName);
+            c.Disconnect("Mod is protected thus cannot be downloaded");
+            return;
+        }
+    }
+
     FileName = Application::Settings.getAsString(Settings::Key::General_ResourceFolder) + "/Client/" + FileName;
 
     if (!std::filesystem::exists(FileName)) {

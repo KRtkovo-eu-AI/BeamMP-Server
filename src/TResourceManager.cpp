@@ -58,20 +58,56 @@ TResourceManager::TResourceManager() {
     Application::SetSubsystemStatus("ResourceManager", Application::Status::Good);
 }
 
-std::string TResourceManager::NewFileList() const {
-    return mMods.dump();
-}
 void TResourceManager::RefreshFiles() {
     mMods.clear();
     std::unique_lock Lock(mModsMutex);
 
     std::string Path = Application::Settings.getAsString(Settings::Key::General_ResourceFolder) + "/Client";
+
+    nlohmann::json modsDB;
+
+    if (std::filesystem::exists(Path + "/mods.json")) {
+        try {
+            std::ifstream stream(Path + "/mods.json");
+
+            stream >> modsDB;
+
+            stream.close();
+        } catch (const std::exception& e) {
+            beammp_errorf("Failed to load mods.json: {}", e.what());
+        }
+    }
+
     for (const auto& entry : fs::directory_iterator(Path)) {
         std::string File(entry.path().string());
+
+        if (entry.path().filename().string() == "mods.json") {
+            continue;
+        }
 
         if (entry.path().extension() != ".zip" || std::filesystem::is_directory(entry.path())) {
             beammp_warnf("'{}' is not a ZIP file and will be ignored", File);
             continue;
+        }
+
+        if (modsDB.contains(entry.path().filename().string())) {
+            auto& dbEntry = modsDB[entry.path().filename().string()];
+            if (entry.last_write_time().time_since_epoch().count() > dbEntry["lastwrite"] || std::filesystem::file_size(File) != dbEntry["filesize"].get<size_t>()) {
+                beammp_infof("File '{}' has been modified, rehashing", File);
+            } else {
+                dbEntry["exists"] = true;
+
+                mMods.push_back(nlohmann::json {
+                    { "file_name", std::filesystem::path(File).filename() },
+                    { "file_size", std::filesystem::file_size(File) },
+                    { "hash_algorithm", "sha256" },
+                    { "hash", dbEntry["hash"] },
+                    { "protected", dbEntry["protected"] } });
+
+                beammp_debugf("Mod '{}' loaded from cache", File);
+
+                continue;
+            }
         }
 
         try {
@@ -133,9 +169,73 @@ void TResourceManager::RefreshFiles() {
                 { "file_size", std::filesystem::file_size(File) },
                 { "hash_algorithm", "sha256" },
                 { "hash", result },
-            });
+                { "protected", false } });
+
+            modsDB[std::filesystem::path(File).filename().string()] = {
+                { "lastwrite", entry.last_write_time().time_since_epoch().count() },
+                { "hash", result },
+                { "filesize", std::filesystem::file_size(File) },
+                { "protected", false },
+                { "exists", true }
+            };
+
         } catch (const std::exception& e) {
             beammp_errorf("Sha256 hashing of '{}' failed: {}", File, e.what());
+        }
+    }
+
+    for (auto it = modsDB.begin(); it != modsDB.end();) {
+        if (!it.value().contains("exists")) {
+            it = modsDB.erase(it);
+        } else {
+            it.value().erase("exists");
+            ++it;
+        }
+    }
+
+    try {
+        std::ofstream stream(Path + "/mods.json");
+
+        stream << modsDB.dump(4);
+
+        stream.close();
+    } catch (std::exception& e) {
+        beammp_error("Failed to update mod DB: " + std::string(e.what()));
+    }
+}
+
+void TResourceManager::SetProtected(const std::string& ModName, bool Protected) {
+    std::unique_lock Lock(mModsMutex);
+
+    for (auto& mod : mMods) {
+        if (mod["file_name"].get<std::string>() == ModName) {
+            mod["protected"] = Protected;
+            break;
+        }
+    }
+
+    auto modsDBPath = Application::Settings.getAsString(Settings::Key::General_ResourceFolder) + "/Client/mods.json";
+
+    if (std::filesystem::exists(modsDBPath)) {
+        try {
+            nlohmann::json modsDB;
+
+            std::fstream stream(modsDBPath);
+
+            stream >> modsDB;
+
+            if (modsDB.contains(ModName)) {
+                modsDB[ModName]["protected"] = Protected;
+            }
+
+            stream.clear();
+            stream.seekp(0, std::ios::beg);
+
+            stream << modsDB.dump(4);
+
+            stream.close();
+        } catch (const std::exception& e) {
+            beammp_errorf("Failed to update mods.json: {}", e.what());
         }
     }
 }

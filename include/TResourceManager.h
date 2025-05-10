@@ -30,10 +30,10 @@ public:
     [[nodiscard]] std::string TrimmedList() const { return mTrimmedList; }
     [[nodiscard]] std::string FileSizes() const { return mFileSizes; }
     [[nodiscard]] int ModsLoaded() const { return mModsLoaded; }
-
-    [[nodiscard]] std::string NewFileList() const;
+    [[nodiscard]] nlohmann::json GetMods() const { return mMods; }
 
     void RefreshFiles();
+    void SetProtected(const std::string& ModName, bool Protected);
 
 private:
     size_t mMaxModSize = 0;

@@ -208,16 +208,18 @@ void TConsole::Command_Help(const std::string&, const std::vector<std::string>& 
     }
     static constexpr const char* sHelpString = R"(
     Commands:
-        help                    displays this help
-        exit                    shuts down the server
-        kick <name> [reason]    kicks specified player with an optional reason
-        list                    lists all players and info about them
-        say <message>           sends the message to all players in chat
-        lua [state id]          switches to lua, optionally into a specific state id's lua
-        settings [command]      sets or gets settings for the server, run `settings help` for more info
-        status                  how the server is doing and what it's up to
-        clear                   clears the console window
-        version                 displays the server version)";
+        help                       displays this help
+        exit                       shuts down the server
+        kick <name> [reason]       kicks specified player with an optional reason
+        list                       lists all players and info about them
+        say <message>              sends the message to all players in chat
+        lua [state id]             switches to lua, optionally into a specific state id's lua
+        settings [command]         sets or gets settings for the server, run `settings help` for more info
+        status                     how the server is doing and what it's up to
+        clear                      clears the console window
+        version                    displays the server version
+        protectmod <name> <value>  sets whether a mod is protected, value can be true or false
+        reloadmods                 reloads all mods from the Resources Client folder)";
     Application::Console().WriteRaw("BeamMP-Server Console: " + std::string(sHelpString));
 }
 
@@ -261,6 +263,32 @@ void TConsole::Command_Version(const std::string& cmd, const std::vector<std::st
     Application::Console().WriteRaw(lua_version);
     std::string openssl_version = fmt::format("OpenSSL:  v{}.{}.{}", OPENSSL_VERSION_MAJOR, OPENSSL_VERSION_MINOR, OPENSSL_VERSION_PATCH);
     Application::Console().WriteRaw(openssl_version);
+}
+void TConsole::Command_ProtectMod(const std::string& cmd, const std::vector<std::string>& args) {
+    if (!EnsureArgsCount(args, 2)) {
+        return;
+    }
+
+    const auto& ModName = args.at(0);
+    const auto& Protect = args.at(1);
+
+    for (auto mod : mLuaEngine->Network().ResourceManager().GetMods()) {
+        if (mod["file_name"].get<std::string>() == ModName) {
+            mLuaEngine->Network().ResourceManager().SetProtected(ModName, Protect == "true");
+            Application::Console().WriteRaw("Mod " + ModName + " is now " + (Protect == "true" ? "protected" : "unprotected"));
+            return;
+        }
+    }
+
+    Application::Console().WriteRaw("Mod " + ModName + " not found.");
+}
+void TConsole::Command_ReloadMods(const std::string& cmd, const std::vector<std::string>& args) {
+    if (!EnsureArgsCount(args, 0)) {
+        return;
+    }
+
+    mLuaEngine->Network().ResourceManager().RefreshFiles();
+    Application::Console().WriteRaw("Mods reloaded.");
 }
 
 void TConsole::Command_Kick(const std::string&, const std::vector<std::string>& args) {
