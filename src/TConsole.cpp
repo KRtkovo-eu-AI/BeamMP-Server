@@ -218,7 +218,7 @@ void TConsole::Command_Help(const std::string&, const std::vector<std::string>& 
         status                     how the server is doing and what it's up to
         clear                      clears the console window
         version                    displays the server version
-        protectmod <name> <value>  sets whether a mod is protected
+        protectmod <name> <value>  sets whether a mod is protected, value can be true or false
         reloadmods                 reloads all mods from the Resources Client folder)";
     Application::Console().WriteRaw("BeamMP-Server Console: " + std::string(sHelpString));
 }
