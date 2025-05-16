@@ -258,7 +258,11 @@ void TConfig::ParseFromFile(std::string_view name) {
         } else {
             TryReadValue(data, "General", StrPort, EnvStrPort, Settings::Key::General_Port);
         }
-        TryReadValue(data, "General", StrIP, EnvStrIP, Settings::Key::General_IP);
+        if (Env::Get(Env::Key::PROVIDER_IP_ENV).has_value()) {
+            TryReadValue(data, "General", StrIP, Env::Get(Env::Key::PROVIDER_IP_ENV).value(), Settings::Key::General_IP);
+        } else {
+            TryReadValue(data, "General", StrIP, EnvStrIP, Settings::Key::General_IP);
+        }
         TryReadValue(data, "General", StrMaxCars, EnvStrMaxCars, Settings::Key::General_MaxCars);
         TryReadValue(data, "General", StrMaxPlayers, EnvStrMaxPlayers, Settings::Key::General_MaxPlayers);
         TryReadValue(data, "General", StrMap, EnvStrMap, Settings::Key::General_Map);
