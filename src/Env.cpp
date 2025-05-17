@@ -39,6 +39,9 @@ std::string_view Env::ToString(Env::Key key) {
     case Key::PROVIDER_PORT_ENV:
         return "BEAMMP_PROVIDER_PORT_ENV";
         break;
+    case Key::PROVIDER_IP_ENV:
+        return "BEAMMP_PROVIDER_IP_ENV";
+        break;
     }
     return "";
 }

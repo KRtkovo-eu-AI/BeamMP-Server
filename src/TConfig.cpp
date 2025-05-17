@@ -258,7 +258,11 @@ void TConfig::ParseFromFile(std::string_view name) {
         } else {
             TryReadValue(data, "General", StrPort, EnvStrPort, Settings::Key::General_Port);
         }
-        TryReadValue(data, "General", StrIP, EnvStrIP, Settings::Key::General_IP);
+        if (Env::Get(Env::Key::PROVIDER_IP_ENV).has_value()) {
+            TryReadValue(data, "General", StrIP, Env::Get(Env::Key::PROVIDER_IP_ENV).value(), Settings::Key::General_IP);
+        } else {
+            TryReadValue(data, "General", StrIP, EnvStrIP, Settings::Key::General_IP);
+        }
         TryReadValue(data, "General", StrMaxCars, EnvStrMaxCars, Settings::Key::General_MaxCars);
         TryReadValue(data, "General", StrMaxPlayers, EnvStrMaxPlayers, Settings::Key::General_MaxPlayers);
         TryReadValue(data, "General", StrMap, EnvStrMap, Settings::Key::General_Map);
@@ -309,6 +313,7 @@ void TConfig::PrintDebug() {
     beammp_debug(std::string(StrPrivate) + ": " + std::string(Application::Settings.getAsBool(Settings::Key::General_Private) ? "true" : "false"));
     beammp_debug(std::string(StrInformationPacket) + ": " + std::string(Application::Settings.getAsBool(Settings::Key::General_InformationPacket) ? "true" : "false"));
     beammp_debug(std::string(StrPort) + ": " + std::to_string(Application::Settings.getAsInt(Settings::Key::General_Port)));
+    beammp_debug(std::string(StrIP) + ": \"" + Application::Settings.getAsString(Settings::Key::General_IP) + "\"");
     beammp_debug(std::string(StrMaxCars) + ": " + std::to_string(Application::Settings.getAsInt(Settings::Key::General_MaxCars)));
     beammp_debug(std::string(StrMaxPlayers) + ": " + std::to_string(Application::Settings.getAsInt(Settings::Key::General_MaxPlayers)));
     beammp_debug(std::string(StrMap) + ": \"" + Application::Settings.getAsString(Settings::Key::General_Map) + "\"");

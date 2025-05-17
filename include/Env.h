@@ -27,6 +27,7 @@ enum class Key {
     PROVIDER_UPDATE_MESSAGE,
     PROVIDER_DISABLE_CONFIG,
     PROVIDER_PORT_ENV,
+    PROVIDER_IP_ENV
 };
 
 std::optional<std::string> Get(Key key);
