@@ -195,6 +195,18 @@ void TServer::GlobalParser(const std::weak_ptr<TClient>& Client, std::vector<uin
 
     // V to Y
     if (Code <= 89 && Code >= 86) {
+        int PID = -1;
+        int VID = -1;
+
+        auto MaybePidVid = GetPidVid(StringPacket.substr(3).substr(0, StringPacket.substr(3).find(':', 1)));
+        if (MaybePidVid) {
+            std::tie(PID, VID) = MaybePidVid.value();
+        }
+
+        if (PID == -1 || VID == -1 || PID != LockedClient->GetID()) {
+            return;
+        }
+
         PPSMonitor.IncrementInternalPPS();
         Network.SendToAll(LockedClient.get(), Packet, false, false);
         return;
@@ -255,11 +267,25 @@ void TServer::GlobalParser(const std::weak_ptr<TClient>& Client, std::vector<uin
     case 'N':
         Network.SendToAll(LockedClient.get(), Packet, false, true);
         return;
-    case 'Z': // position packet
+    case 'Z': { // position packet
         PPSMonitor.IncrementInternalPPS();
+
+        int PID = -1;
+        int VID = -1;
+
+        auto MaybePidVid = GetPidVid(StringPacket.substr(3).substr(0, StringPacket.substr(3).find(':', 1)));
+        if (MaybePidVid) {
+            std::tie(PID, VID) = MaybePidVid.value();
+        }
+
+        if (PID == -1 || VID == -1 || PID != LockedClient->GetID()) {
+            return;
+        }
+
         Network.SendToAll(LockedClient.get(), Packet, false, false);
         HandlePosition(*LockedClient, StringPacket);
         return;
+    }
     default:
         return;
     }
@@ -328,8 +354,9 @@ void TServer::ParseVehicle(TClient& c, const std::string& Pckt, TNetwork& Networ
                 });
 
             bool SpawnConfirmed = false;
-            if (ShouldSpawn(c, CarJson, CarID) && !ShouldntSpawn) {
-                c.AddNewCar(CarID, Packet);
+            auto CarJsonDoc = nlohmann::json::parse(CarJson, nullptr, false);
+            if (ShouldSpawn(c, CarJson, CarID) && !ShouldntSpawn && !CarJsonDoc.is_discarded()) {
+                c.AddNewCar(CarID, CarJsonDoc);
                 Network.SendToAll(nullptr, StringToVector(Packet), true, true);
                 SpawnConfirmed = true;
             } else {
@@ -446,6 +473,17 @@ void TServer::ParseVehicle(TClient& c, const std::string& Pckt, TNetwork& Networ
             Data = Data.substr(Data.find('['));
             LuaAPI::MP::Engine->ReportErrors(LuaAPI::MP::Engine->TriggerEvent("onVehiclePaintChanged", "", c.GetID(), VID, Data));
             Network.SendToAll(&c, StringToVector(Packet), false, true);
+
+            auto CarData = c.GetCarData(VID);
+            if (CarData == nlohmann::detail::value_t::null)
+                return;
+
+            if (CarData.contains("vcf") && CarData.at("vcf").is_object())
+                if (CarData.at("vcf").contains("paints") && CarData.at("vcf").at("paints").is_array()) {
+                    CarData.at("vcf")["paints"] = nlohmann::json::parse(Data);
+                    c.SetCarData(VID, CarData);
+                }
+
         }
         return;
     }
@@ -461,42 +499,22 @@ void TServer::Apply(TClient& c, int VID, const std::string& pckt) {
         beammp_error("Malformed packet received, no '{' found");
         return;
     }
+
     std::string Packet = pckt.substr(FoundPos);
-    std::string VD = c.GetCarData(VID);
-    if (VD.empty()) {
+    nlohmann::json VD = c.GetCarData(VID);
+    if (VD == nlohmann::detail::value_t::null) {
         beammp_error("Tried to apply change to vehicle that does not exist");
         return;
     }
-    std::string Header = VD.substr(0, VD.find('{'));
 
-    FoundPos = VD.find('{');
-    if (FoundPos == std::string::npos) {
-        return;
-    }
-    VD = VD.substr(FoundPos);
-    rapidjson::Document Veh, Pack;
-    Veh.Parse(VD.c_str());
-    if (Veh.HasParseError()) {
-        beammp_error("Could not get vehicle config!");
-        return;
-    }
-    Pack.Parse(Packet.c_str());
-    if (Pack.HasParseError() || Pack.IsNull()) {
+    nlohmann::json Pack = nlohmann::json::parse(Packet, nullptr, false);
+
+    if (Pack.is_discarded()) {
         beammp_error("Could not get active vehicle config!");
         return;
     }
 
-    for (auto& M : Pack.GetObject()) {
-        if (Veh[M.name].IsNull()) {
-            Veh.AddMember(M.name, M.value, Veh.GetAllocator());
-        } else {
-            Veh[M.name] = Pack[M.name];
-        }
-    }
-    rapidjson::StringBuffer Buffer;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(Buffer);
-    Veh.Accept(writer);
-    c.SetCarData(VID, Header + Buffer.GetString());
+    c.SetCarData(VID, Pack);
 }
 
 void TServer::InsertClient(const std::shared_ptr<TClient>& NewClient) {

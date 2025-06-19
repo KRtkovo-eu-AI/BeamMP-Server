@@ -974,7 +974,7 @@ bool TNetwork::SyncClient(const std::weak_ptr<TClient>& c) {
                     res = false;
                     return false;
                 }
-                res = Respond(*LockedClient, StringToVector(v.Data()), true, true);
+                res = Respond(*LockedClient, StringToVector(v.DataAsPacket(client->GetRoles(), client->GetName(), client->GetID())), true, true);
             }
         }
 

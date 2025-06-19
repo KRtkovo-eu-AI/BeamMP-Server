@@ -18,11 +18,12 @@
 
 #pragma once
 
+#include <nlohmann/json.hpp>
 #include <string>
 
 class TVehicleData final {
 public:
-    TVehicleData(int ID, std::string Data);
+    TVehicleData(int ID, nlohmann::json Data);
     ~TVehicleData();
     // We cannot delete this, since vector needs to be able to copy when it resizes.
     // Deleting this causes some wacky template errors which are hard to decipher,
@@ -32,14 +33,16 @@ public:
     [[nodiscard]] bool IsInvalid() const { return mID == -1; }
     [[nodiscard]] int ID() const { return mID; }
 
-    [[nodiscard]] std::string Data() const { return mData; }
-    void SetData(const std::string& Data) { mData = Data; }
+    [[nodiscard]] nlohmann::json Data() const { return mData; }
+    [[nodiscard]] std::string DataAsPacket(const std::string& Role, const std::string& Name, int ID) const;
+
+    void SetData(const nlohmann::json& Data) { mData = Data; }
 
     bool operator==(const TVehicleData& v) const { return mID == v.mID; }
 
 private:
     int mID { -1 };
-    std::string mData;
+    nlohmann::json mData;
 };
 
 // TODO: unused now, remove?

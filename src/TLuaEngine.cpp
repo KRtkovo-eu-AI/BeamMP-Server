@@ -668,7 +668,7 @@ sol::table TLuaEngine::StateThreadData::Lua_GetPlayerVehicles(int ID) {
         sol::state_view StateView(mState);
         sol::table Result = StateView.create_table();
         for (const auto& v : VehicleData) {
-            Result[v.ID()] = v.Data().substr(3);
+            Result[v.ID()] = v.DataAsPacket(Client->GetRoles(), Client->GetName(), Client->GetID()).substr(3);
         }
         return Result;
     } else

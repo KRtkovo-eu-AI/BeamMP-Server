@@ -56,14 +56,14 @@ public:
     ~TClient();
     TClient& operator=(const TClient&) = delete;
 
-    void AddNewCar(int Ident, const std::string& Data);
-    void SetCarData(int Ident, const std::string& Data);
+    void AddNewCar(int Ident, const nlohmann::json& Data);
+    void SetCarData(int Ident, const nlohmann::json& Data);
     void SetCarPosition(int Ident, const std::string& Data);
     TVehicleDataLockPair GetAllCars();
     void SetName(const std::string& Name) { mName = Name; }
     void SetRoles(const std::string& Role) { mRole = Role; }
     void SetIdentifier(const std::string& key, const std::string& value) { mIdentifiers[key] = value; }
-    std::string GetCarData(int Ident);
+    nlohmann::json GetCarData(int Ident);
     std::string GetCarPositionRaw(int Ident);
     void SetUDPAddr(const ip::udp::endpoint& Addr) { mUDPAddress = Addr; }
     void SetTCPSock(ip::tcp::socket&& CSock) { mSocket = std::move(CSock); }
