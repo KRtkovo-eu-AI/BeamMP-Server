@@ -24,6 +24,7 @@
 #include "CustomAssert.h"
 #include "LuaAPI.h"
 #include "TLuaEngine.h"
+#include "Http.h"
 
 #include <ctime>
 #include <lua.hpp>
@@ -289,6 +290,30 @@ void TConsole::Command_ReloadMods(const std::string& cmd, const std::vector<std:
 
     mLuaEngine->Network().ResourceManager().RefreshFiles();
     Application::Console().WriteRaw("Mods reloaded.");
+}
+
+void TConsole::Command_NetTest(const std::string& cmd, const std::vector<std::string>& args) {
+    unsigned int status = 0;
+
+    std::string T = Http::GET(
+    Application::GetServerCheckUrl() + "/api/v2/beammp/" + std::to_string(Application::Settings.getAsInt(Settings::Key::General_Port)), &status
+        );
+
+    beammp_debugf("Status and response from Server Check API: {0}, {1}", status, T);
+
+    auto Doc = nlohmann::json::parse(T, nullptr, false);
+
+    if (Doc.is_discarded() || !Doc.is_object()) {
+        beammp_warn("Failed to parse Server Check API response, however the server will most likely still work correctly.");
+    } else {
+        std::string status = Doc["status"];
+        std::string details = "Response from Server Check API: " + std::string(Doc["details"]);
+        if (status == "ok") {
+            beammp_info(details);
+        } else {
+            beammp_warn(details);
+        }
+    }
 }
 
 void TConsole::Command_Kick(const std::string&, const std::vector<std::string>& args) {
