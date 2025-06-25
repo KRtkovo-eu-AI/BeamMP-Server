@@ -36,7 +36,7 @@ namespace MP {
     std::pair<bool, std::string> DropPlayer(int ID, std::optional<std::string> MaybeReason);
     std::pair<bool, std::string> SendChatMessage(int ID, const std::string& Message);
     std::pair<bool, std::string> SendNotification(int ID, const std::string& Message, const std::string& Icon, const std::string& Category);
-    std::pair<bool, std::string> ConfirmationDialog(int ID, const std::string& Title, const std::string& Body, const sol::table& buttons, const std::string& InteractionID, const bool& warning = false);
+    std::pair<bool, std::string> ConfirmationDialog(int ID, const std::string& Title, const std::string& Body, const sol::table& buttons, const std::string& InteractionID, const bool& warning = false, const bool& reportToServer = true, const bool& reportToExtensions = true);
     std::pair<bool, std::string> RemoveVehicle(int PlayerID, int VehicleID);
     void Set(int ConfigID, sol::object NewValue);
     TLuaValue Get(int ConfigID);

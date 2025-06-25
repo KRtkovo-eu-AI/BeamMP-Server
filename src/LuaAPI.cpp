@@ -241,7 +241,7 @@ std::pair<bool, std::string> LuaAPI::MP::SendNotification(int ID, const std::str
     return Result;
 }
 
-std::pair<bool, std::string> LuaAPI::MP::ConfirmationDialog(int ID, const std::string& Title, const std::string& Body, const sol::table& buttons, const std::string& InteractionID, const bool& warning) {
+std::pair<bool, std::string> LuaAPI::MP::ConfirmationDialog(int ID, const std::string& Title, const std::string& Body, const sol::table& buttons, const std::string& InteractionID, const bool& warning, const bool& reportToServer, const bool& reportToExtensions) {
     std::pair<bool, std::string> Result;
 
     const nlohmann::json PacketBody = {
@@ -249,7 +249,9 @@ std::pair<bool, std::string> LuaAPI::MP::ConfirmationDialog(int ID, const std::s
         { "body", Body },
         { "buttons", nlohmann::json::parse(JsonEncode(buttons), nullptr, false) },
         { "interactionID", InteractionID },
-        { "class", warning ? "experimental" : "" }
+        { "class", warning ? "experimental" : "" },
+        { "reportToServer", reportToServer },
+        { "reportToExtensions", reportToExtensions }
     };
 
     std::string Packet = "D" + PacketBody.dump();
