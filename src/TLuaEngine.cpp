@@ -876,6 +876,12 @@ TLuaEngine::StateThreadData::StateThreadData(const std::string& Name, TLuaStateI
             beammp_lua_error("SendNotification expects 2, 3 or 4 arguments.");
         }
     });
+    MPTable.set_function("ConfirmationDialog", sol::overload(
+        &LuaAPI::MP::ConfirmationDialog,
+        [&](const int& ID, const std::string& Title, const std::string& Body, const sol::table& Buttons, const std::string& InteractionID) {
+            LuaAPI::MP::ConfirmationDialog(ID, Title, Body, Buttons, InteractionID);
+        }
+    ));
     MPTable.set_function("GetPlayers", [&]() -> sol::table {
         return Lua_GetPlayers();
     });
