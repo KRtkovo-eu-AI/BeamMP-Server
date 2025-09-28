@@ -505,9 +505,15 @@ void TServer::ParseVehicle(TClient& c, const std::string& Pckt, TNetwork& Networ
                         Updated = true;
                     }
 
-                    if (PaintJson.contains("customPartPaints") && PaintJson.at("customPartPaints").is_object()) {
-                        VehicleConfig["customPartPaints"] = PaintJson.at("customPartPaints");
-                        Updated = true;
+                    if (PaintJson.contains("customPartPaints")) {
+                        const auto& CustomPartPaints = PaintJson.at("customPartPaints");
+                        if (CustomPartPaints.is_object()) {
+                            VehicleConfig["customPartPaints"] = CustomPartPaints;
+                            Updated = true;
+                        } else if (CustomPartPaints.is_null()) {
+                            VehicleConfig.erase("customPartPaints");
+                            Updated = true;
+                        }
                     }
                 }
 
