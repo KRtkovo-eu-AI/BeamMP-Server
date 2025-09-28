@@ -470,7 +470,14 @@ void TServer::ParseVehicle(TClient& c, const std::string& Pckt, TNetwork& Networ
         }
 
         if (PID != -1 && VID != -1 && PID == c.GetID()) {
-            Data = Data.substr(Data.find('['));
+            auto DataStart = Data.find(':');
+            if (DataStart != std::string::npos && DataStart + 1 < Data.size()) {
+                Data = Data.substr(DataStart + 1);
+            } else {
+                beammp_warn("received 'Op' packet with malformed payload");
+                return;
+            }
+
             LuaAPI::MP::Engine->ReportErrors(LuaAPI::MP::Engine->TriggerEvent("onVehiclePaintChanged", "", c.GetID(), VID, Data));
             Network.SendToAll(&c, StringToVector(Packet), false, true);
 
@@ -478,11 +485,42 @@ void TServer::ParseVehicle(TClient& c, const std::string& Pckt, TNetwork& Networ
             if (CarData == nlohmann::detail::value_t::null)
                 return;
 
-            if (CarData.contains("vcf") && CarData.at("vcf").is_object())
-                if (CarData.at("vcf").contains("paints") && CarData.at("vcf").at("paints").is_array()) {
-                    CarData.at("vcf")["paints"] = nlohmann::json::parse(Data);
+            if (CarData.contains("vcf") && CarData.at("vcf").is_object()) {
+                auto& VehicleConfig = CarData.at("vcf");
+                auto PaintJson = nlohmann::json::parse(Data, nullptr, false);
+
+                if (PaintJson.is_discarded()) {
+                    beammp_warn("failed to parse paint data from 'Op' packet");
+                    return;
+                }
+
+                bool Updated = false;
+
+                if (PaintJson.is_array()) {
+                    VehicleConfig["paints"] = PaintJson;
+                    Updated = true;
+                } else if (PaintJson.is_object()) {
+                    if (PaintJson.contains("paints") && PaintJson.at("paints").is_array()) {
+                        VehicleConfig["paints"] = PaintJson.at("paints");
+                        Updated = true;
+                    }
+
+                    if (PaintJson.contains("customPartPaints")) {
+                        const auto& CustomPartPaints = PaintJson.at("customPartPaints");
+                        if (CustomPartPaints.is_object()) {
+                            VehicleConfig["customPartPaints"] = CustomPartPaints;
+                            Updated = true;
+                        } else if (CustomPartPaints.is_null()) {
+                            VehicleConfig.erase("customPartPaints");
+                            Updated = true;
+                        }
+                    }
+                }
+
+                if (Updated) {
                     c.SetCarData(VID, CarData);
                 }
+            }
 
         }
         return;

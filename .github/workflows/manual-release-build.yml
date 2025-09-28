@@ -1,0 +1,102 @@
+name: Manual Release Build
+
+on:
+  workflow_dispatch:
+
+env:
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  CMAKE_BUILD_TYPE: "Release"
+  DEBIAN_FRONTEND: "noninteractive"
+
+jobs:
+  linux:
+    name: Linux Release
+    runs-on: ubuntu-22.04
+    container:
+      image: ubuntu:22.04
+    steps:
+      - name: get-cmake
+        uses: lukka/get-cmake@v3.28.1
+
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Install git
+        run: |
+          apt-get update -y
+          apt-get install -y git
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Git config safe directory
+        shell: bash
+        run: bash ./scripts/ubuntu-22.04/1.5-git-safe.sh
+
+      - name: Install dependencies
+        run: bash ./scripts/ubuntu-22.04/1-install-deps.sh
+
+      - name: Configure
+        run: bash ./scripts/ubuntu-22.04/2-configure.sh '-DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake'
+
+      - name: Build
+        run: bash ./scripts/ubuntu-22.04/3-build.sh
+
+      - name: Install runtime dependencies
+        run: bash ./scripts/ubuntu-22.04/4-install-runtime-deps.sh
+
+      - name: Package artifacts
+        run: |
+          mkdir -p artifacts/linux
+          cp ./bin/BeamMP-Server artifacts/linux/
+          cp ./bin/BeamMP-Server.debug artifacts/linux/
+          tar -czf BeamMP-Server-linux-x86_64.tar.gz -C artifacts/linux BeamMP-Server BeamMP-Server.debug
+
+      - name: Upload release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: BeamMP-Server-linux-x86_64
+          path: BeamMP-Server-linux-x86_64.tar.gz
+
+  windows:
+    name: Windows Release
+    runs-on: windows-latest
+    env:
+      VCPKG_DEFAULT_TRIPLET: x64-windows-static
+    steps:
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        shell: bash
+        run: ./scripts/windows/1-configure.sh
+
+      - name: Build
+        shell: bash
+        run: bash ./scripts/windows/2-build.sh
+
+      - name: Package artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path artifacts/windows -Force | Out-Null
+          Copy-Item -Path ./bin/Release/BeamMP-Server.exe -Destination artifacts/windows/
+          Compress-Archive -Path artifacts/windows/BeamMP-Server.exe -DestinationPath BeamMP-Server-windows-x86_64.zip -Force
+
+      - name: Upload release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: BeamMP-Server-windows-x86_64
+          path: BeamMP-Server-windows-x86_64.zip
